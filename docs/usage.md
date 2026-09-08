@@ -6,7 +6,7 @@
 
 ## Introduction
 
-**nf-core/diseasemodulediscovery** is a bioinformatics pipeline for network medicine hypothesis generation, designed for identifying active/disease modules. Developed and maintained by the [RePo4EU](https://repo4.eu/) consortium, it aims to characterize the molecular mechanisms of diseases by analyzing the local neighborhood of disease-associated genes or proteins (seeds) within the interactome. This approach can help identify potential drug targets for drug repurposing.
+**nf-core/diseasemodulediscovery** is a bioinformatics pipeline for network medicine hypothesis generation, designed for identifying active/disease modules. Developed and maintained by the [RePo4EU](https://repo4.eu/) consortium, it aims to characterize the molecular mechanisms of diseases by analyzing the local neighborhood of disease-associated genes or proteins (seeds) within a molecular interaction network. The pipeline includes multiple disease module detection algorithms and an evaluation framework to compare the results returned by different methods.
 
 ## Running the pipeline
 
@@ -106,7 +106,7 @@ Instead of providing your own network file, you can choose from a variety of alr
 Usage example:
 
 ```bash
-nextflow run <PATH_TO_REPO>/modulediscovery/main.nf \
+nextflow run nf-core/diseasemodulediscovery \
    -profile docker \
    --seeds ./seeds.txt \
    --network string_min900 \
@@ -125,7 +125,7 @@ For details on the network preparation procedure (including ID mapping, links to
 You can also use the `--seeds` and `--network` parameters to define multiple files as comma-separated lists:
 
 ```bash
-nextflow run <PATH_TO_REPO>/modulediscovery/main.nf \
+nextflow run nf-core/diseasemodulediscovery \
    -profile <docker/singularity> \
    --seeds <SEED_FILE_1,SEED_FILE_2,...> \
    --network <NETWORK_FILE_1,NETWORK_FILE_2,...> \
@@ -148,7 +148,7 @@ Each row defines a seeds-network pair.
 You can run the pipeline with a samplesheet using the `--input` parameter instead of `--seeds` and `--network`:
 
 ```bash
-nextflow run <PATH_TO_REPO>/modulediscovery/main.nf \
+nextflow run nf-core/diseasemodulediscovery \
    -profile <docker/singularity> \
    --input samplesheet.csv \
    --outdir <OUTDIR>
@@ -159,7 +159,7 @@ nextflow run <PATH_TO_REPO>/modulediscovery/main.nf \
 Most pipeline steps can be skipped using `--skip_<PIPELINE_STEP>`. E.g., if you are only interested in module discovery, you can skip the annotation and evaluation steps using:
 
 ```bash
-nextflow run <PATH_TO_REPO>/modulediscovery/main.nf \
+nextflow run nf-core/diseasemodulediscovery \
    -profile <docker/singularity> \
    --input samplesheet.csv \
    --outdir <OUTDIR> \
@@ -170,7 +170,7 @@ nextflow run <PATH_TO_REPO>/modulediscovery/main.nf \
 You can then later continue the pipeline (including evaluation and annotation) using the `-resume` option:
 
 ```bash
-nextflow run <PATH_TO_REPO>/modulediscovery/main.nf \
+nextflow run nf-core/diseasemodulediscovery \
    -profile <docker/singularity> \
    --input samplesheet.csv \
    --outdir <OUTDIR> \
@@ -190,9 +190,9 @@ Use `--run_network_perturbation` to repeatedly rewire the edges of the input net
 The pipeline saves the rewired networks (please refer to the [output documentation](https://nf-co.re/diseasemodulediscovery/output)), which can be reused in future analyses with the same original input network. To do so, provide the path to the folder containing the rewired networks via the `--perturbed_networks` parameter. If multiple networks are used, the folders specified in `--perturbed_networks` must be given in the same order as the corresponding input networks.
 
 ```bash
-nextflow run <PATH_TO_REPO>/modulediscovery/main.nf \
+nextflow run nf-core/diseasemodulediscovery \
    -profile <docker/singularity> \
-   --seeds <SEED_FILE_> \
+   --seeds <SEED_FILE> \
    --network <NETWORK_FILE_1,NETWORK_FILE_2,...> \
    --perturbed_networks <PATH_TO_PERTURBED_NETWORK_FOLDER_1,PATH_TO_PERTURBED_NETWORK_FOLDER_1,...> \
    --outdir <OUTDIR>
@@ -207,6 +207,7 @@ seed_file_2.csv,network_2.csv,/path/to/perturbed/networks/network_2
 seed_file_2.csv,network_1.csv,/path/to/perturbed/networks/network_1
 ```
 
+<<<<<<< HEAD
 ### Blacklisting genes
 
 Some genes or proteins may be uninformative or undesirable for downstream interpretation. Use `--blacklist` to exclude such genes from the network and from the identified disease modules after the module identification methods have been run. The pipeline removes any blacklisted genes/proteins from the resulting modules.
@@ -228,6 +229,33 @@ seed_file_1.csv,network_1.csv,blacklist_file_1.csv
 seed_file_2.csv,network_2.csv,blacklist_file_2.csv
 seed_file_2.csv,network_1.csv,blacklist_file_1.csv
 ```
+=======
+### Using the pipeline with a different organism or custom ID space
+
+The pipeline is currently designed for human data, and all [inbuilt networks](#available-networks) are available for humans only. However, most steps are agnostic of the organism and the ID space of the network nodes and seeds. By providing your own [seed and network files](#running-the-pipeline) and [skipping the steps](#skipping-steps) that rely on matching node IDs to external, human-specific resources, you can run the pipeline with completely custom node IDs. The steps that need to be skipped are:
+
+- **ROBUST (bias-aware)** (`--skip_robust_bias_aware`) – maps node IDs to a human study-bias dataset
+- **g:Profiler** (`--skip_gprofiler`) and **DIGEST** (`--skip_digest`) – functional evaluation against external annotations. If your IDs are valid genes/proteins of a [supported organism](https://biit.cs.ut.ee/gprofiler/page/organism-list), you can keep g:Profiler by setting `--gprofiler_organism <organism>` instead of skipping it.
+- **Module annotation** (`--skip_annotation`) – biological data from NeDRex
+- **Drugst.One export** (`--skip_drugstone_export`) and **drug prioritization** (`--skip_drug_predictions`) – rely on Drugst.One
+
+```bash
+nextflow run nf-core/diseasemodulediscovery \
+   -profile <docker/singularity> \
+   --seeds <CUSTOM_ID_SPACE_SEED_FILE> \
+   --network <CUSTOM_ID_SPACE_NETWORK_FILE> \
+   --skip_robust_bias_aware \
+   --skip_annotation \
+   --skip_gprofiler \
+   --skip_digest \
+   --skip_drugstone_export \
+   --skip_drug_predictions \
+   --outdir <OUTDIR>
+```
+
+> [!NOTE]
+> The node IDs in your seed and network files must use the same ID space. Since all steps that depend on `--id_space` are skipped here, the parameter can be left at its default value.
+>>>>>>> upstream/dev
 
 ### Updating the pipeline
 
@@ -287,7 +315,7 @@ If `-profile` is not specified, the pipeline will run locally and expect all sof
 - `apptainer`
   - A generic configuration profile to be used with [Apptainer](https://apptainer.org/)
 - `wave`
-  - A generic configuration profile to enable [Wave](https://seqera.io/wave/) containers. Use together with one of the above (requires Nextflow ` 24.03.0-edge` or later).
+  - A generic configuration profile to enable [Wave](https://seqera.io/wave/) containers. Use together with one of the above (requires Nextflow `24.03.0-edge` or later).
 - `conda`
   - A generic configuration profile to be used with [Conda](https://conda.io/docs/). Please only use Conda as a last resort i.e. when it's not possible to run the pipeline with Docker, Singularity, Podman, Shifter, Charliecloud, or Apptainer.
 

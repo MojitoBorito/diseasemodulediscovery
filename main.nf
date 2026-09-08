@@ -32,7 +32,6 @@ workflow NFCORE_DISEASEMODULEDISCOVERY {
     take:
     ch_seeds                // channel: [ val(meta[id,seeds_id,network_id]), path(seeds) ]
     ch_network              // channel: [ val(meta[id,network_id]), path(network) ]
-    ch_shortest_paths       // channel: [ val(meta[id,network_id]), path(shortest_paths) ]
     ch_perturbed_networks    // channel: [ val(meta[id,network_id]), [path(perturbed_networks)] ]
     ch_blacklist                    // channel: [ val(meta[id,seeds_id,network_id]), path(blacklist) ]
 
@@ -51,7 +50,6 @@ workflow NFCORE_DISEASEMODULEDISCOVERY {
         params.outdir,
         ch_seeds,
         ch_network,
-        ch_shortest_paths,
         ch_perturbed_networks,
         ch_blacklist
     )
@@ -167,6 +165,9 @@ params {
     // Flag for skipping g:Profiler
     skip_gprofiler: Boolean
 
+    // Parameter for setting the organism for g:Profiler. See https://biit.cs.ut.ee/gprofiler/page/organism-list for a list of supported organisms.
+    gprofiler_organism: String = 'hsapiens'
+
     // Flag for skipping DIGEST
     skip_digest: Boolean
 
@@ -191,14 +192,6 @@ params {
     //
     // Drug prioritization
     //
-    // Flag for running proximity
-    run_proximity: Boolean
-
-    // Path(s) to the shortest path pickle file(s) used for proximity.
-    shortest_paths: String?
-
-    // Local path to the drug to targets file used for proximity.
-    drug_to_target: String?
 
     // Flag for skipping drug predictions
     skip_drug_predictions: Boolean
@@ -282,7 +275,6 @@ workflow {
         params.input,
         params.seeds,
         params.network,
-        params.shortest_paths,
         params.perturbed_networks,
         params.prepared_networks_url,
         params.id_space,
@@ -292,7 +284,12 @@ workflow {
     //
     // WORKFLOW: Run main workflow
     //
-    NFCORE_DISEASEMODULEDISCOVERY (PIPELINE_INITIALISATION.out.seeds, PIPELINE_INITIALISATION.out.network, PIPELINE_INITIALISATION.out.shortest_paths, PIPELINE_INITIALISATION.out.perturbed_networks, PIPELINE_INITIALISATION.out.blacklist)
+    NFCORE_DISEASEMODULEDISCOVERY (
+        PIPELINE_INITIALISATION.out.seeds, 
+        PIPELINE_INITIALISATION.out.network, 
+        PIPELINE_INITIALISATION.out.perturbed_networks, 
+        PIPELINE_INITIALISATION.out.blacklist
+    )
 
     //
     // SUBWORKFLOW: Run completion tasks
