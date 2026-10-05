@@ -43,6 +43,9 @@ workflow NFCORE_DISEASEMODULEDISCOVERY {
     // WORKFLOW: Run pipeline
     //
 
+    ch_blacklist.view()
+    println "ch_blacklist: ${ch_blacklist}"
+
     DISEASEMODULEDISCOVERY (
         params.multiqc_config,
         params.multiqc_logo,

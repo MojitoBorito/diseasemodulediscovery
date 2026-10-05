@@ -135,11 +135,11 @@ workflow PIPELINE_INITIALISATION {
 
         def rows = samplesheetToList(param_input, "${projectDir}/assets/schema_input.json") 
         
-        def samplesheet_has_blacklists = rows.any {row -> row[4] && row[4].size() > 0}
+        def samplesheet_has_blacklists = rows.any {row -> row[3] && row[3].size() > 0}
 
         ch_input = Channel
             .fromList(rows)
-            .map{seeds, network, shortest_paths, perturbed_networks, blacklist ->
+            .map{seeds, network, perturbed_networks, blacklist ->
                 if((seeds.size()==0)){
                     error("No seeds files specified in the sample sheet")
                 }
@@ -171,19 +171,21 @@ workflow PIPELINE_INITIALISATION {
 
         if (samplesheet_has_blacklists){
             ch_blacklist = ch_input
-                    .map{it ->  
-                        def seeds = it[0].baseName
-                        def blacklist = it[3]}
-                    .combine(ch_seeds.map{meta, seeds -> [meta.seeds_id, meta.network_id]}, by: 0)
-                    .map{ seeds_id, blacklist, network_id ->
-                        [[id: blacklist ? blacklist.baseName : "NO_FILE", 
-                        seeds_id: seeds_id, 
-                        network_id: network_id ], 
-                        blacklist ? blacklist : file("${projectDir}/assets/NO_FILE") ]
-                    }
+                .map { seeds, network, _perturbed_networks, blacklist ->
+                    def network_id = mapPreparedNetwork(network_map, id_space_map, prepared_networks_url, network, param_id_space).baseName
+                    [
+                        [ id: blacklist ? blacklist.baseName : "NO_FILE",
+                        seeds_id: seeds.baseName,
+                        network_id: network_id ],
+                        blacklist ? blacklist : file("${projectDir}/assets/NO_FILE")
+                    ]
+                }
         } else {
             ch_blacklist = ch_seeds.map { meta, seeds ->
-                [[id: "NO_FILE", seeds_id: meta.seeds_id, network_id: meta.network_id], file("${projectDir}/assets/NO_FILE", checkIfExists:true)]
+                [[id: "NO_FILE", 
+                seeds_id: meta.seeds_id, 
+                network_id: meta.network_id], 
+                file("${projectDir}/assets/NO_FILE")]
             }
         }
 
@@ -228,7 +230,10 @@ workflow PIPELINE_INITIALISATION {
                 }
         } else {
             ch_blacklist = ch_seeds.map { meta, seeds ->
-                [[id: "NO_FILE", seeds_id: meta.seeds_id, network_id: meta.network_id], file("${projectDir}/assets/NO_FILE", checkIfExists:true)]
+                [[id: "NO_FILE", 
+                seeds_id: meta.seeds_id, 
+                network_id: meta.network_id], 
+                file("${projectDir}/assets/NO_FILE")]
             }
         }
         
